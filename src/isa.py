@@ -3,14 +3,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
-from src.reg_file import Register
-
 
 class Opcode(str, Enum):
     MOV = "mov"
     ST = "st"
     LD = "ld"
-    WORD = "word"
 
     ADD = "add"
     SUB = "sub"

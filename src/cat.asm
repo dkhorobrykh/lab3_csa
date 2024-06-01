@@ -1,7 +1,9 @@
-input: word 1
-output: word 2
+.data:
+    input: 1
+    output: 2
 
-loop:
-    ld r0 input
-    st r0 output
-    jmp loop
+.code:
+    loop:
+        ld r0 input
+        st output r0
+        jnz loop

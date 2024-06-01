@@ -29,6 +29,7 @@ class Signal(str, Enum):
     CHECK_ZERO_FLAG = "check zero flag"
     CHECK_NOT_ZERO_FLAG = "check not zero flag"
     CHECK_SIGN_FLAG = "check sign flag"
+    CHECK_NOT_SIGN_FLAG = "check not sign flag"
 
     HALT = "halt"
 
@@ -50,7 +51,6 @@ class Sel:
         IMMEDIATE = "sel_reg_immediate"
 
     class LeftAlu(str, Enum):
-        DATA_REGISTER = "sel_left_alu_dr"
         REGISTER = "sel_left_alu_reg"
         CONTROL_UNIT = "sel_left_alu_cu"
 
@@ -90,6 +90,8 @@ class ALU:
     left_term = None
     right_term = None
 
+    data_path = None
+
     flags = {
         "Z": False,
         "N": False
@@ -105,11 +107,25 @@ class ALU:
         self.flags["Z"] = self.result == 0
         self.flags["N"] = self.result < 0
 
-    def signal_latch_left_alu(self, value):
-        self.left_term = value
+    def signal_latch_left_alu(self, sel):
+        assert isinstance(sel, Sel.LeftAlu), "sel_left_alu is undefined"
 
-    def signal_latch_right_alu(self, value):
-        self.right_term = value
+        if sel == Sel.LeftAlu.REGISTER:
+            self.left_term = self.data_path.registers[Register.LEFT_REGISTER_TERM]
+        elif sel == Sel.LeftAlu.CONTROL_UNIT:
+            self.left_term = self.data_path.control_unit.program.terms[0] if str(self.data_path.control_unit.program.terms[0]).upper() not in Register.__members__ else int(self.data_path.control_unit.program.terms[1])
+
+    def signal_latch_right_alu(self, sel):
+        assert isinstance(sel, Sel.RightAlu), "sel_right_alu is undefined"
+
+        if sel == Sel.RightAlu.REGISTER:
+            self.right_term = self.data_path.registers[Register.RIGHT_REGISTER_TERM]
+        elif sel == Sel.RightAlu.ZERO:
+            self.right_term = 0
+        elif sel == Sel.RightAlu.PLUS_ONE:
+            self.right_term = 1
+        elif sel == Sel.RightAlu.DATA_REGISTER:
+            self.right_term = self.data_path.data_register
 
     def compute(self, operation: ALUOperations):
         match operation:
@@ -151,7 +167,10 @@ class DataPath:
         Register.R0: 0,
         Register.R1: 0,
         Register.R2: 0,
-        Register.R3: 0
+        Register.R3: 0,
+        Register.R4: 0,
+        Register.LEFT_REGISTER_TERM: 0,
+        Register.RIGHT_REGISTER_TERM: 0
     }
 
     input_buffer = None
@@ -178,6 +197,9 @@ class DataPath:
         self.registers[Register.R1] = 0
         self.registers[Register.R2] = 0
         self.registers[Register.R3] = 0
+        self.registers[Register.R4] = 0
+        self.registers[Register.LEFT_REGISTER_TERM] = 0
+        self.registers[Register.RIGHT_REGISTER_TERM] = 0
 
         self.input_buffer = input_buffer
         self.output_buffer = list()
@@ -187,6 +209,8 @@ class DataPath:
 
         for i in range(len(code)):
             self.memory[i] = code[i]
+
+        self.alu.data_path = self
 
     def signal_latch_data_register(self, sel):
         assert isinstance(sel, Sel.DataRegister), "sel_dr is undefined"
@@ -205,31 +229,24 @@ class DataPath:
 
         assert 0 <= self.address_register < self.memory_size, f"out of memory: {self.address_register}"
 
-    def signal_latch_register(self, register: Register, sel, value_from_control_unit=None): # todo: maybe deleter value_from_control_unit??
+    def signal_latch_register(self, sel, register):
+        register = Register(register) if type(register) is str else register
         assert isinstance(sel, Sel.Register), "sel_reg is undefined"
         assert isinstance(register, Register), "reg is undefined"
 
-        if sel == Sel.Register.CONTROL_UNIT:  # todo: 2 одинаковых sel
-            self.registers[register] = value_from_control_unit
-        elif sel == Sel.Register.DATA_REGISTER:
+        if sel == Sel.Register.DATA_REGISTER:
             self.registers[register] = self.data_register
         elif sel == Sel.Register.ALU:
             self.registers[register] = self.alu.result
-        elif sel == Sel.Register.INPUT:
-            if len(self.input_buffer) == 0:
-                raise EOFError
-            symbol = self.input_buffer.pop(0)
-            symbol_code = ord(symbol)
-            assert -128 < symbol_code <= 127, f"input token is out of bound: {self.data_register}"
-        elif sel == Sel.Register.IMMEDIATE:
-            self.registers[register] = value_from_control_unit
 
-    def signal_latch_left_register_term(self, register: Register):
+    def signal_latch_left_register_term(self, register):
+        register = Register(register) if type(register) is str else register
         assert isinstance(register, Register), "register is undefined"
 
         self.registers[Register.LEFT_REGISTER_TERM] = self.registers[register]
 
     def signal_latch_right_register_term(self, register: Register):
+        register = Register(register) if type(register) is str else register
         assert isinstance(register, Register), "register is undefined"
 
         self.registers[Register.RIGHT_REGISTER_TERM] = self.registers[register]
@@ -239,6 +256,7 @@ class DataPath:
 
         if self.address_register == self.output_address:
             self.output_buffer.append(self.data_register)
+            logging.info(f"output: {[chr(i) if i < 128 else str(i) for i in self.output_buffer]} << {chr(self.data_register) if self.data_register < 128 else str(self.data_register)}")
         else:
             self.memory[self.address_register] = self.data_register
 
@@ -248,25 +266,14 @@ class DataPath:
         if self.address_register == self.input_address:
             if len(self.input_buffer) == 0:
                 raise EOFError("input buffer is empty")
-            self.data_register = self.input_buffer.pop(0)
+            symbol = self.input_buffer.pop(0)
+            logging.info(f"input: {self.input_buffer} >> {symbol}")
+            symbol_code = ord(symbol)
+            assert -128 < symbol_code <= 127, f"input token is out of bound: {self.data_register}"
+
+            self.data_register = symbol_code
         else:
             self.data_register = self.memory[self.address_register]
-
-    def signal_sel_left_alu(self, sel):
-        assert isinstance(sel, Sel.LeftAlu), "sel_left_alu is undefined"
-
-        if sel == Sel.LeftAlu.REGISTER:
-            self.alu.signal_latch_left_alu(self.registers[Register.LEFT_REGISTER_TERM])
-        elif sel == Sel.LeftAlu.DATA_REGISTER:
-            self.alu.signal_latch_left_alu(self.data_register)
-
-    def signal_sel_right_alu(self, sel):
-        assert isinstance(sel, Sel.RightAlu), "sel_right_alu is undefined"
-
-        if sel == Sel.RightAlu.REGISTER:
-            self.alu.signal_latch_right_alu(self.registers[Register.RIGHT_REGISTER_TERM])
-        elif sel == Sel.RightAlu.DATA_REGISTER:
-            self.alu.signal_latch_right_alu(self.data_register)
 
     def execute_alu_operation(self, operation: ALU.ALUOperations):
         self.alu.compute(operation)
@@ -279,6 +286,9 @@ class DataPath:
 
     def check_sign_flag(self):
         return self.alu.flags["N"]
+
+    def check_not_sign_flag(self):
+        return not self.alu.flags["N"]
 
 
 class ControlUnit:
@@ -298,8 +308,8 @@ class ControlUnit:
         self.model_tick = 0
 
         self.signals = {
-            Signal.LATCH_LEFT_ALU: self.data_path.signal_sel_left_alu,
-            Signal.LATCH_RIGHT_ALU: self.data_path.signal_sel_right_alu,
+            Signal.LATCH_LEFT_ALU: self.data_path.alu.signal_latch_left_alu,
+            Signal.LATCH_RIGHT_ALU: self.data_path.alu.signal_latch_right_alu,
             Signal.LATCH_DATA_REGISTER: self.data_path.signal_latch_data_register,
             Signal.LATCH_ADDRESS_REGISTER: self.data_path.signal_latch_address_register,
             Signal.LATCH_REGISTER: self.data_path.signal_latch_register,
@@ -312,6 +322,8 @@ class ControlUnit:
             Signal.EXECUTE_ALU_OPERATION: self.data_path.execute_alu_operation,
             Signal.CHECK_ZERO_FLAG: self.data_path.check_zero_flag,
             Signal.CHECK_NOT_ZERO_FLAG: self.data_path.check_not_zero_flag,
+            Signal.CHECK_SIGN_FLAG: self.data_path.check_sign_flag,
+            Signal.CHECK_NOT_SIGN_FLAG: self.data_path.check_not_sign_flag,
             Signal.LATCH_PROGRAM_COUNTER: self.signal_latch_pc,
             Signal.HALT: self.halt
         }
@@ -343,7 +355,7 @@ class ControlUnit:
             [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # ST
             [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
             [(Signal.SIGNAL_WRITE,), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # LD
             [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
@@ -370,36 +382,37 @@ class ControlUnit:
             # TEST
             [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.TEST), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JMP
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JZ
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_ZERO_FLAG), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JNZ
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_ZERO_FLAG), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JGE
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_SIGN_FLAG), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_SIGN_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # HLT
             [(Signal.HALT,)]
         ]
 
         self.data_path.control_unit = self
 
+
     def tick(self):
         self.model_tick += 1
 
-    def signal_latch_pc(self, sel):
+    def signal_latch_pc(self, sel, check_signal=True):
         assert isinstance(sel, Sel.PC), "sel_pc is undefined"
 
         if sel == Sel.PC.ZERO:
             self.program_counter = 0
         elif sel == Sel.PC.MPROGRAM:
-            self.program_counter = self.program.terms[0]
+            self.program_counter = self.program.terms[0] if check_signal else self.program_counter + 1
         elif sel == Sel.PC.PLUS_ONE:
             self.program_counter += 1
         elif sel == Sel.PC.ADDRESS_REGISTER:
             self.program_counter = self.data_path.address_register
 
     def halt(self):
-        raise SystemExit()
+        raise Exception("halt")
 
     def signal_latch_mpc(self, sel):
         assert isinstance(sel, Sel.MPC), "sel_mpc is undefined"
@@ -420,30 +433,59 @@ class ControlUnit:
         return fun(*args)
 
     def decode_and_execute_micro_instruction(self):
+        if self.program is None or len(self.program.terms) == 0:
+            terms = [None, None]
+        elif len(self.program.terms) == 1:
+            terms = [self.program.terms[0], self.program.terms[0]]
+        else:
+            terms = self.program.terms
+        first_term = terms[0]
+        second_term = terms[1]
+        first_used = False
+
+        if self.program is not None and self.program.opcode in {Opcode.ST, Opcode.MOV}:
+            first_term, second_term = second_term, first_term
+
         for signal in self.mprogram[self.mpc]:
+            if None in signal:
+                if not first_used:
+                    reg_name = first_term
+                    first_used = True
+                else:
+                    reg_name = second_term
+                    second_term = first_term
+                signal = (signal[0], signal[1], reg_name) if len(signal) == 3 else (signal[0], reg_name)
+            if len(signal) == 3 and isinstance(signal[-1], Signal):
+                signal = (signal[0], signal[1], self.signals[signal[2]]())
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
-        return (f"TICK: {self.tick()}\t"
+        return (f"TICK: {self.model_tick}\t"
                 f"PC: {self.program_counter}\t"
                 f"AR: {self.data_path.address_register}\t"
-                f"DR: {self.data_path.data_register}"
-                f"R0: {self.data_path.registers[Register.R0]}\t"
-                f"R1: {self.data_path.registers[Register.R1]}\t"
-                f"R2: {self.data_path.registers[Register.R2]}\t"
-                f"R3: {self.data_path.registers[Register.R3]}")
-
-    def show_control_unit_microdebug(self):
-        return (f"TICK: {self.tick()}\t"
-                f"PC: {self.program_counter}\t"
-                f"AR: {self.data_path.address_register}\t"
-                f"DR: {self.data_path.data_register}"
+                f"DR: {self.data_path.data_register}\t"
                 f"R0: {self.data_path.registers[Register.R0]}\t"
                 f"R1: {self.data_path.registers[Register.R1]}\t"
                 f"R2: {self.data_path.registers[Register.R2]}\t"
                 f"R3: {self.data_path.registers[Register.R3]}\t"
+                f"R4: {self.data_path.registers[Register.R4]}")
+
+    def show_control_unit_microdebug(self):
+        return (f"TICK: {self.model_tick}\t"
+                f"PC: {self.program_counter}\t"
+                f"AR: {self.data_path.address_register}\t"
+                f"DR: {self.data_path.data_register}\t"
+                f"R0: {self.data_path.registers[Register.R0]}\t"
+                f"R1: {self.data_path.registers[Register.R1]}\t"
+                f"R2: {self.data_path.registers[Register.R2]}\t"
+                f"R3: {self.data_path.registers[Register.R3]}\t"
+                f"R4: {self.data_path.registers[Register.R4]}\t"
+                f"LEFT_REG: {self.data_path.registers[Register.LEFT_REGISTER_TERM]}\t"
+                f"RIGHT_REG: {self.data_path.registers[Register.RIGHT_REGISTER_TERM]}\t"
+                f"ALU: {self.data_path.alu.result}\t"
                 f"MPC: {self.mpc}\t"
-                f"SIGNALS: {' | '.join([', '.join(i) for i in map(str, self.mprogram[self.mpc])])}")
+                f"PROGRAM: {self.program}\t"
+                f"SIGNALS: {' | '.join([', '.join(str(i) if i is not None else '' for i in signal) for signal in self.mprogram[self.mpc]])}")
 
 
 def simulate(code, input_tokens, memory_size, limit, log_limit):
@@ -452,14 +494,15 @@ def simulate(code, input_tokens, memory_size, limit, log_limit):
     try:
         while control_unit.model_tick < limit:
             if control_unit.model_tick < log_limit:
-                if control_unit.mpc == 0:
-                    logging.info(control_unit.show_control_unit_debug())
                 logging.info(control_unit.show_control_unit_microdebug())
+                if control_unit.mpc == 0:
+                    logging.info("")
+                    # logging.info(control_unit.show_control_unit_debug())
             control_unit.decode_and_execute_micro_instruction()
             control_unit.tick()
     except Exception as e:
-        print(traceback.format_exc())
-        return "".join(control_unit.data_path.output_buffer), control_unit.program_counter, control_unit.model_tick
+        # print(traceback.format_exc())
+        return "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]), control_unit.program_counter, control_unit.model_tick
 
 
 def main(code_file, input_file):
@@ -470,7 +513,7 @@ def main(code_file, input_file):
         for char in input_text:
             input_token.append(char)
 
-    output, program_counter, ticks = simulate(memory, input_token, 100000, 100000, 100000)
+    output, program_counter, ticks = simulate(memory, input_token, 100000, 100, 100000)
     print()
     print("PROGRAM IS ENDING!")
     print(f"output: {output}")

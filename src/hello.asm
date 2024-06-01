@@ -1,28 +1,20 @@
-message:
-    word 13
-    word "hello, world!"
+.data:
+    message: "hello, world!"
+    length: 13
+    input: 1
+    output: 2
+    zero: 0
 
-pointer:
-    word message
-inc pointer
-
-curr_length:
-    word 0
-
-input:
-    word 1
-output:
-    word 2
-
-loop:
-    inc curr_length
-    mov r0 curr_length
-    sub r0 message
-    test r0 r0
-    jz end
-    st output pointer
-    inc pointer
-    jmp loop
-
-end:
-    hlt
+.code:
+    loop:
+        mov r0 message
+        mov r1 zero
+        inc r0 ; пропускаем длину строки
+        inc r1
+        st output r0
+        mov r2 zero
+        cmp r1 r2
+        jz end
+        jmp loop
+    end:
+        hlt

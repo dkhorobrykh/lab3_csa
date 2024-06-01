@@ -43,10 +43,10 @@ def first_stage(program: str):
     labels = dict()
 
     for line in needed_part.splitlines():
-        if line == '':
+        token = get_meaningful_token(line)
+        if token == '':
             continue
 
-        token = get_meaningful_token(line)
         args = token.split(" ", 1)
         ind = len(code) + 1
 
@@ -63,15 +63,15 @@ def first_stage(program: str):
 
 
 def place_labels_in_memory(memory: list, labels: dict[str, int]):
+    constant = len(memory) + len(labels) - 1
     for key, value in labels.items():
-        labels[key] = len(memory)
-        memory.append(value)
+        memory.append(value + constant)
+        labels[key] = len(memory) - 1
     return memory, labels
 
 
 def second_stage(code: List[Command], labels: Dict, memory) -> List:
     memory[0] = Command(0, Opcode.JMP, [len(memory)])
-    print(labels)
     for command in code:
         new_terms = list()
         for term in command.terms:
@@ -83,8 +83,20 @@ def second_stage(code: List[Command], labels: Dict, memory) -> List:
                 raise KeyError(f"Метка {term} не найдена в коде")
         command.terms = new_terms
 
+        print(command)
+
+        if command.opcode in {Opcode.JZ, Opcode.JMP, Opcode.JNZ, Opcode.JGE}:
+            command.terms[0] = memory[command.terms[0]]
+
+        if command.opcode == Opcode.LD:
+            command.terms[1] = memory[command.terms[1]]
+
+        if command.opcode == Opcode.ST:
+            command.terms[0] = memory[command.terms[0]]
+
         if command.opcode == Opcode.MOV and str(new_terms[-1]).upper() not in Register.__members__:
             command.opcode = Opcode.LD
+
         memory.append(command)
 
     return memory
@@ -95,6 +107,7 @@ def translate(program: str) -> List[Command]:
     code, inner_labels = first_stage(program)
     memory, inner_labels = place_labels_in_memory(memory, inner_labels)
     labels = labels | inner_labels
+    print(memory, labels)
     memory = second_stage(code, labels, memory)
 
     return memory
