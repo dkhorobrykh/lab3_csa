@@ -1,0 +1,149 @@
+[
+    {
+        "index": 0,
+        "opcode": "jmp",
+        "terms": [
+            12
+        ]
+    },
+    null,
+    null,
+    2,
+    0,
+    1,
+    2,
+    2,
+    4000000,
+    4,
+    10,
+    16,
+    {
+        "index": 1,
+        "opcode": "ld",
+        "terms": [
+            "r0",
+            6
+        ]
+    },
+    {
+        "index": 2,
+        "opcode": "ld",
+        "terms": [
+            "r1",
+            5
+        ]
+    },
+    {
+        "index": 3,
+        "opcode": "ld",
+        "terms": [
+            "r2",
+            4
+        ]
+    },
+    {
+        "index": 4,
+        "opcode": "add",
+        "terms": [
+            "r0",
+            "r1"
+        ]
+    },
+    {
+        "index": 5,
+        "opcode": "mov",
+        "terms": [
+            "r3",
+            "r0"
+        ]
+    },
+    {
+        "index": 6,
+        "opcode": "mod",
+        "terms": [
+            "r3",
+            7
+        ]
+    },
+    {
+        "index": 7,
+        "opcode": "test",
+        "terms": [
+            "r3",
+            "r3"
+        ]
+    },
+    {
+        "index": 8,
+        "opcode": "jnz",
+        "terms": [
+            10
+        ]
+    },
+    {
+        "index": 9,
+        "opcode": "add",
+        "terms": [
+            "r2",
+            "r0"
+        ]
+    },
+    {
+        "index": 10,
+        "opcode": "mov",
+        "terms": [
+            "r1",
+            "r0"
+        ]
+    },
+    {
+        "index": 11,
+        "opcode": "sub",
+        "terms": [
+            "r0",
+            "r1"
+        ]
+    },
+    {
+        "index": 12,
+        "opcode": "neg",
+        "terms": [
+            "r0"
+        ]
+    },
+    {
+        "index": 13,
+        "opcode": "cmp",
+        "terms": [
+            "r0",
+            8
+        ]
+    },
+    {
+        "index": 14,
+        "opcode": "jge",
+        "terms": [
+            11
+        ]
+    },
+    {
+        "index": 15,
+        "opcode": "jmp",
+        "terms": [
+            9
+        ]
+    },
+    {
+        "index": 16,
+        "opcode": "st",
+        "terms": [
+            3,
+            "r2"
+        ]
+    },
+    {
+        "index": 17,
+        "opcode": "hlt",
+        "terms": []
+    }
+]
