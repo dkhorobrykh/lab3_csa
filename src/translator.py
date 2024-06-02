@@ -83,8 +83,6 @@ def second_stage(code: List[Command], labels: Dict, memory) -> List:
                 raise KeyError(f"Метка {term} не найдена в коде")
         command.terms = new_terms
 
-        print(command)
-
         if command.opcode in {Opcode.JZ, Opcode.JMP, Opcode.JNZ, Opcode.JGE}:
             command.terms[0] = memory[command.terms[0]]
 
@@ -107,7 +105,6 @@ def translate(program: str) -> List[Command]:
     code, inner_labels = first_stage(program)
     memory, inner_labels = place_labels_in_memory(memory, inner_labels)
     labels = labels | inner_labels
-    print(memory, labels)
     memory = second_stage(code, labels, memory)
 
     return memory
