@@ -1,8 +1,10 @@
-import logging
-import sys
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Callable, Dict
+import logging
+import sys
+from typing import List, Callable, Dict, ClassVar
 
 from isa import Command, Opcode, read_code
 from reg_file import Register
@@ -236,7 +238,7 @@ class DataPath:
         assert 0 <= self.address_register < self.memory_size, f"out of memory: {self.address_register}"
 
     def signal_latch_register(self, sel, register):
-        register = Register(register) if type(register) is str else register
+        register = Register(register) if isinstance(register, str) else register
         assert isinstance(sel, Sel.Register), "sel_reg is undefined"
         assert isinstance(register, Register), "reg is undefined"
 
@@ -246,13 +248,13 @@ class DataPath:
             self.registers[register] = self.alu.result
 
     def signal_latch_left_register_term(self, register):
-        register = Register(register) if type(register) is str else register
+        register = Register(register) if isinstance(register, str) else register
         assert isinstance(register, Register), "register is undefined"
 
         self.registers[Register.LEFT_REGISTER_TERM] = self.registers[register]
 
     def signal_latch_right_register_term(self, register: Register):
-        register = Register(register) if type(register) is str else register
+        register = Register(register) if isinstance(register, str) else register
         assert isinstance(register, Register), "register is undefined"
 
         self.registers[Register.RIGHT_REGISTER_TERM] = self.registers[register]
@@ -297,6 +299,10 @@ class DataPath:
 
     def check_not_sign_flag(self):
         return not self.alu.flags["N"]
+
+
+class HltException(Exception):
+    pass
 
 
 class ControlUnit:
@@ -590,7 +596,7 @@ class ControlUnit:
             self.program_counter = self.data_path.address_register
 
     def halt(self):
-        raise Exception("halt")
+        raise HltException("halt")
 
     def signal_latch_mpc(self, sel):
         assert isinstance(sel, Sel.MPC), "sel_mpc is undefined"

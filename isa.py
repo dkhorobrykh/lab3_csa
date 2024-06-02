@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from enum import Enum
@@ -40,7 +42,7 @@ class Command:
     opcode: Opcode
     terms: List
 
-    def toDict(self):
+    def to_dict(self):
         return {"index": self.index, "opcode": str(self.opcode), "terms": self.terms}
 
     def __str__(self):
@@ -51,7 +53,7 @@ def write_code(filename: str, code: List[Command]) -> None:
     with open(filename, "w", encoding="utf8") as file:
         res = list()
         for command in code:
-            res.append(command.toDict() if isinstance(command, Command) else command)
+            res.append(command.to_dict() if isinstance(command, Command) else command)
         file.write(json.dumps(res, indent=4))
 
 

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
+from typing import List, Dict
 import sys
-from typing import List, Dict, Tuple
 
 from isa import Command, Opcode, write_code
 from reg_file import Register

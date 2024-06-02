@@ -4,9 +4,8 @@ import logging
 import os.path
 import tempfile
 
-import pytest
-
 import machine
+import pytest
 import translator
 
 
