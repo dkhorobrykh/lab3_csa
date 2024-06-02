@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Dict
 import sys
 
 from isa import Command, Opcode, write_code
@@ -72,7 +71,7 @@ def place_labels_in_memory(memory: list, labels: dict[str, int]):
     return memory, labels
 
 
-def second_stage(code: List[Command], labels: Dict, memory) -> List:
+def second_stage(code: list[Command], labels: dict, memory) -> list:
     memory[0] = Command(0, Opcode.JMP, [len(memory)])
     for command in code:
         new_terms = list()
@@ -102,14 +101,13 @@ def second_stage(code: List[Command], labels: Dict, memory) -> List:
     return memory
 
 
-def translate(program: str) -> List[Command]:
+def translate(program: str) -> list[Command]:
     memory, labels = process_data_section(program)
     code, inner_labels = first_stage(program)
     memory, inner_labels = place_labels_in_memory(memory, inner_labels)
     labels = labels | inner_labels
-    memory = second_stage(code, labels, memory)
 
-    return memory
+    return second_stage(code, labels, memory)
 
 
 def main(source_filename: str, target_filename: str) -> None:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
 
 
 class Opcode(str, Enum):
@@ -40,7 +39,7 @@ class Opcode(str, Enum):
 class Command:
     index: int
     opcode: Opcode
-    terms: List
+    terms: list
 
     def to_dict(self):
         return {"index": self.index, "opcode": str(self.opcode), "terms": self.terms}
@@ -49,7 +48,7 @@ class Command:
         return f"{self.opcode.value}({' '.join([str(i) for i in self.terms])})"
 
 
-def write_code(filename: str, code: List[Command]) -> None:
+def write_code(filename: str, code: list[Command]) -> None:
     with open(filename, "w", encoding="utf8") as file:
         res = list()
         for command in code:
@@ -57,7 +56,7 @@ def write_code(filename: str, code: List[Command]) -> None:
         file.write(json.dumps(res, indent=4))
 
 
-def read_code(filename: str) -> List[Command]:
+def read_code(filename: str) -> list[Command]:
     with open(filename, "r", encoding="utf8") as file:
         in_json = json.loads(file.read())
         result = list()

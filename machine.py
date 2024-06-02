@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 import logging
 import sys
-from typing import List, Callable, Dict, ClassVar
 
 from isa import Command, Opcode, read_code
 from reg_file import Register
@@ -163,7 +162,7 @@ class ALU:
 
 @dataclass()
 class DataPath:
-    memory: List[object] = None
+    memory: list[object] = None
     memory_size: int = None
 
     data_register = None
@@ -301,7 +300,7 @@ class DataPath:
         return not self.alu.flags["N"]
 
 
-class HltException(Exception):
+class HltErrorException(Exception):
     pass
 
 
@@ -309,11 +308,11 @@ class ControlUnit:
     program_counter: int = None
     program: Command = None
     mpc: int = None
-    mpc_of_opcode: Callable[[Opcode], int] = None
-    mprogram: List = None
+    mpc_of_opcode: callable[[Opcode], int] = None
+    mprogram: list = None
     data_path: DataPath = None
     model_tick: int = None
-    signals: Dict[Signal, Callable] = None
+    signals: dict[Signal, callable] = None
 
     def __init__(self, data_path):
         self.program_counter = 0
@@ -596,7 +595,7 @@ class ControlUnit:
             self.program_counter = self.data_path.address_register
 
     def halt(self):
-        raise HltException("halt")
+        raise HltErrorException("halt")
 
     def signal_latch_mpc(self, sel):
         assert isinstance(sel, Sel.MPC), "sel_mpc is undefined"
@@ -644,8 +643,6 @@ class ControlUnit:
         ):
             first_term, second_term = second_term, first_term
 
-        # print(self.program.opcode, first_term, second_term) if self.program is not None else ...
-
         for signal in self.mprogram[self.mpc]:
             if None in signal:
                 if not first_used:
@@ -657,7 +654,6 @@ class ControlUnit:
                 signal = (signal[0], signal[1], reg_name) if len(signal) == 3 else (signal[0], reg_name)
             if len(signal) == 3 and isinstance(signal[-1], Signal):
                 signal = (signal[0], signal[1], self.signals[signal[2]]())
-            # print(signal)
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
