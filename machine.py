@@ -618,10 +618,13 @@ class ControlUnit:
 
     def get_terms(self):
         if self.program is None or len(self.program.terms) == 0:
-            return [None, None]
+            terms = [None, None]
         elif len(self.program.terms) == 1:
-            return [self.program.terms[0], self.program.terms[0]]
-        return self.program.terms
+            terms = [self.program.terms[0], self.program.terms[0]]
+        else:
+            terms = self.program.terms
+
+        return terms
 
     def swap_terms_based_on_opcode(self, terms):
         first_term, second_term = terms
