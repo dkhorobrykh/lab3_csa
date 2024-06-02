@@ -1,8 +1,9 @@
 ## Asm. Транслятор и модель
 
 * Хоробрых Даниил Евгеньевич, P3216
-* asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache
+* `asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache`
 * Базовый вариант
+* Без усложнения
 ___
 
 ### Язык программирования
@@ -925,3 +926,8 @@ golden_test.py::test_translator_asm_and_machine[golden/prob2.yml] PASSED        
 
 ================================================================================ 4 passed in 2.24s ================================================================================
 ```
+
+| Хоробрых Даниил Евгеньевич | cat | 7 | - | 8 | - | 231 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+| Хоробрых Даниил Евгеньевич | hello | 11 | - | 12 | - | 293 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+| Хоробрых Даниил Евгеньевич | hello_username | 50 | - | 51 | - | 1533 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+| Хоробрых Даниил Евгеньевич | prob2 | 20 | - | 21 | - | 1091 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |

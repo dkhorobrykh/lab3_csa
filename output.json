@@ -3,37 +3,22 @@
         "index": 0,
         "opcode": "jmp",
         "terms": [
-            23
+            8
         ]
     },
     null,
     null,
-    13,
-    104,
-    101,
-    108,
-    108,
-    111,
-    44,
-    32,
-    119,
-    111,
-    114,
-    108,
-    100,
-    33,
-    13,
     1,
     2,
-    0,
-    25,
-    33,
+    48,
+    8,
+    14,
     {
         "index": 1,
-        "opcode": "mva",
+        "opcode": "ld",
         "terms": [
             "r0",
-            3
+            1
         ]
     },
     {
@@ -41,71 +26,41 @@
         "opcode": "ld",
         "terms": [
             "r1",
-            20
+            5
         ]
     },
     {
         "index": 3,
-        "opcode": "inc",
+        "opcode": "cmp",
         "terms": [
-            "r0"
-        ]
-    },
-    {
-        "index": 4,
-        "opcode": "inc",
-        "terms": [
+            "r0",
             "r1"
         ]
     },
     {
-        "index": 5,
-        "opcode": "lda",
+        "index": 4,
+        "opcode": "jz",
         "terms": [
-            "r2",
+            14
+        ]
+    },
+    {
+        "index": 5,
+        "opcode": "st",
+        "terms": [
+            2,
             "r0"
         ]
     },
     {
         "index": 6,
-        "opcode": "st",
+        "opcode": "jnz",
         "terms": [
-            2,
-            "r2"
+            8
         ]
     },
     {
         "index": 7,
-        "opcode": "ld",
-        "terms": [
-            "r2",
-            17
-        ]
-    },
-    {
-        "index": 8,
-        "opcode": "cmp",
-        "terms": [
-            "r1",
-            "r2"
-        ]
-    },
-    {
-        "index": 9,
-        "opcode": "jz",
-        "terms": [
-            33
-        ]
-    },
-    {
-        "index": 10,
-        "opcode": "jmp",
-        "terms": [
-            25
-        ]
-    },
-    {
-        "index": 11,
         "opcode": "hlt",
         "terms": []
     }
