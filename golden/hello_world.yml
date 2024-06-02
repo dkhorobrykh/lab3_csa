@@ -135,9 +135,6 @@ out_code: |-
           "terms": []
       }
   ]
-
-out_stdin: |
-
 out_log: |
   DEBUG   machine:simulate      TICK: 0	PC: 0	AR: 0	DR: 0	R0: 0	R1: 0	R2: 0	R3: 0	R4: 0	LEFT_REG: 0	RIGHT_REG: 0	ALU: 0	MPC: 0	PROGRAM: None	SIGNALS: Signal.LATCH_ADDRESS_REGISTER, AddressRegister.PROGRAM_COUNTER | Signal.SIGNAL_READ | Signal.LATCH_PROGRAM | Signal.LATCH_MPC, MPC.MPC_ADDRESS
   DEBUG   machine:simulate      TICK: 1	PC: 0	AR: 0	DR: jmp(23)	R0: 0	R1: 0	R2: 0	R3: 0	R4: 0	LEFT_REG: 0	RIGHT_REG: 0	ALU: 0	MPC: 25	PROGRAM: jmp(23)	SIGNALS: Signal.LATCH_PROGRAM_COUNTER, PC.MPROGRAM | Signal.LATCH_MPC, MPC.ZERO
@@ -446,6 +443,7 @@ out_log: |
   DEBUG   machine:simulate      TICK: 291	PC: 31	AR: 31	DR: jz(33)	R0: 16	R1: 13	R2: 13	R3: 0	R4: 0	LEFT_REG: 13	RIGHT_REG: 13	ALU: 0	MPC: 26	PROGRAM: jz(33)	SIGNALS: Signal.LATCH_PROGRAM_COUNTER, PC.MPROGRAM, Signal.CHECK_ZERO_FLAG | Signal.LATCH_MPC, MPC.ZERO
   DEBUG   machine:simulate      TICK: 292	PC: 33	AR: 31	DR: jz(33)	R0: 16	R1: 13	R2: 13	R3: 0	R4: 0	LEFT_REG: 13	RIGHT_REG: 13	ALU: 0	MPC: 0	PROGRAM: jz(33)	SIGNALS: Signal.LATCH_ADDRESS_REGISTER, AddressRegister.PROGRAM_COUNTER | Signal.SIGNAL_READ | Signal.LATCH_PROGRAM | Signal.LATCH_MPC, MPC.MPC_ADDRESS
   DEBUG   machine:simulate      TICK: 293	PC: 33	AR: 33	DR: hlt()	R0: 16	R1: 13	R2: 13	R3: 0	R4: 0	LEFT_REG: 13	RIGHT_REG: 13	ALU: 0	MPC: 29	PROGRAM: hlt()	SIGNALS: Signal.HALT
+  INFO    machine:simulate      hlt
 out_stdout: |
   ================================================
   output: hello, world!

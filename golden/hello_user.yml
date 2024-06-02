@@ -567,8 +567,6 @@ out_code: |-
           "terms": []
       }
   ]
-out_stdin: |
-
 out_log: |
   DEBUG   machine:simulate      TICK: 0	PC: 0	AR: 0	DR: 0	R0: 0	R1: 0	R2: 0	R3: 0	R4: 0	LEFT_REG: 0	RIGHT_REG: 0	ALU: 0	MPC: 0	PROGRAM: None	SIGNALS: Signal.LATCH_ADDRESS_REGISTER, AddressRegister.PROGRAM_COUNTER | Signal.SIGNAL_READ | Signal.LATCH_PROGRAM | Signal.LATCH_MPC, MPC.MPC_ADDRESS
   DEBUG   machine:simulate      TICK: 1	PC: 0	AR: 0	DR: jmp(101)	R0: 0	R1: 0	R2: 0	R3: 0	R4: 0	LEFT_REG: 0	RIGHT_REG: 0	ALU: 0	MPC: 25	PROGRAM: jmp(101)	SIGNALS: Signal.LATCH_PROGRAM_COUNTER, PC.MPROGRAM | Signal.LATCH_MPC, MPC.ZERO

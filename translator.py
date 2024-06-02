@@ -71,7 +71,7 @@ def place_labels_in_memory(memory: list, labels: dict[str, int]):
     return memory, labels
 
 
-def second_stage(code: list[Command], labels: dict, memory) -> list:
+def second_stage(code: list[Command], labels: dict, memory):
     memory[0] = Command(0, Opcode.JMP, [len(memory)])
     for command in code:
         new_terms = list()
@@ -81,9 +81,13 @@ def second_stage(code: list[Command], labels: dict, memory) -> list:
             elif term.upper() in Register.__members__:
                 new_terms.append(Register(term))
             else:
-                raise KeyError(f"Метка {term} не найдена в коде")
+                raise KeyError
         command.terms = new_terms
+        memory.append(command)
 
+
+def replace_references_with_real_values(code: list[Command], memory):
+    for command in code:
         if command.opcode in {Opcode.JZ, Opcode.JMP, Opcode.JNZ, Opcode.JGE}:
             command.terms[0] = memory[command.terms[0]]
 
@@ -93,11 +97,8 @@ def second_stage(code: list[Command], labels: dict, memory) -> list:
         if command.opcode == Opcode.ST:
             command.terms[0] = memory[command.terms[0]]
 
-        if command.opcode == Opcode.MOV and str(new_terms[-1]).upper() not in Register.__members__:
+        if command.opcode == Opcode.MOV and str(command.terms[-1]).upper() not in Register.__members__:
             command.opcode = Opcode.LD
-
-        memory.append(command)
-
     return memory
 
 
@@ -106,8 +107,9 @@ def translate(program: str) -> list[Command]:
     code, inner_labels = first_stage(program)
     memory, inner_labels = place_labels_in_memory(memory, inner_labels)
     labels = labels | inner_labels
+    second_stage(code, labels, memory)
 
-    return second_stage(code, labels, memory)
+    return replace_references_with_real_values(code, memory)
 
 
 def main(source_filename: str, target_filename: str) -> None:

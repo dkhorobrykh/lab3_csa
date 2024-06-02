@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import sys
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import ClassVar
@@ -96,7 +95,7 @@ class ALU:
 
     data_path: ClassVar[DataPath] = None
 
-    flags = {"Z": False, "N": False}
+    flags: ClassVar[dict[str, bool]] = {"Z": False, "N": False}
 
     def __init__(self):
         self.result = 0
@@ -172,7 +171,7 @@ class DataPath:
 
     alu: ClassVar[ALU] = None
 
-    registers = {
+    registers: ClassVar[dict[Register, object]]= {
         Register.R0: 0,
         Register.R1: 0,
         Register.R2: 0,
@@ -302,7 +301,7 @@ class DataPath:
         return not self.alu.flags["N"]
 
 
-class HltErrorException(Exception):
+class HltError(Exception):
     pass
 
 
@@ -597,7 +596,7 @@ class ControlUnit:
             self.program_counter = self.data_path.address_register
 
     def halt(self):
-        raise HltErrorException
+        raise HltError
 
     def signal_latch_mpc(self, sel):
         assert isinstance(sel, Sel.MPC), "sel_mpc is undefined"
@@ -617,20 +616,21 @@ class ControlUnit:
         assert fun is not None, "signal not found"
         return fun(*args)
 
-    def decode_and_execute_micro_instruction(self):
+    def get_terms(self):
         if self.program is None or len(self.program.terms) == 0:
-            terms = [None, None]
+            return [None, None]
         elif len(self.program.terms) == 1:
-            terms = [self.program.terms[0], self.program.terms[0]]
+            return [self.program.terms[0], self.program.terms[0]]
         else:
-            terms = self.program.terms
-        first_term = terms[0]
-        second_term = terms[1]
-        first_used = False
+            return self.program.terms
 
+    def swap_terms_based_on_opcode(self, terms):
+        first_term, second_term = terms
         if self.program is not None and self.program.opcode in {Opcode.ST, Opcode.MOV, Opcode.LDA}:
             first_term, second_term = second_term, first_term
+        return first_term, second_term
 
+    def conditional_swap(self, first_term, second_term):
         if (
             self.program is not None
             and self.program.opcode == Opcode.LDA
@@ -645,17 +645,30 @@ class ControlUnit:
         ):
             first_term, second_term = second_term, first_term
 
+        return first_term, second_term
+
+    def process_signal(self, signal, first_term, second_term, first_used, signals):
+        if None in signal:
+            if not first_used:
+                reg_name = first_term
+                first_used = True
+            else:
+                reg_name = second_term
+                second_term = first_term
+            signal = (signal[0], signal[1], reg_name) if len(signal) == 3 else (signal[0], reg_name)
+        if len(signal) == 3 and isinstance(signal[-1], Signal):
+            signal = (signal[0], signal[1], signals[signal[2]]())
+
+        return signal, first_term, second_term, first_used
+
+    def decode_and_execute_micro_instruction(self):
+        terms = self.get_terms()
+        first_term, second_term = self.swap_terms_based_on_opcode(terms)
+        first_term, second_term = self.conditional_swap(first_term, second_term)
+        first_used = False
+
         for signal in self.mprogram[self.mpc]:
-            if None in signal:
-                if not first_used:
-                    reg_name = first_term
-                    first_used = True
-                else:
-                    reg_name = second_term
-                    second_term = first_term
-                signal = (signal[0], signal[1], reg_name) if len(signal) == 3 else (signal[0], reg_name)
-            if len(signal) == 3 and isinstance(signal[-1], Signal):
-                signal = (signal[0], signal[1], self.signals[signal[2]]())
+            signal, first_term, second_term, first_used = self.process_signal(signal, first_term, second_term, first_used, self.signals)
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
@@ -700,13 +713,16 @@ def simulate(code, input_tokens, memory_size, limit, log_limit):
                 logging.debug(control_unit.show_control_unit_microdebug())
             control_unit.decode_and_execute_micro_instruction()
             control_unit.tick()
+    except HltError:
+        logging.info("hlt")
     except Exception as e:
         logging.warning(e) if str(e) != "halt" else ...
-        return (
-            "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]),
-            control_unit.program_counter,
-            control_unit.model_tick,
-        )
+
+    return (
+        "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]),
+        control_unit.program_counter,
+        control_unit.model_tick,
+    )
 
 
 def main(code_file, input_file):
