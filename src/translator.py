@@ -26,7 +26,7 @@ def process_data_section(program: str):
             memory.append(len(str_to_append))
 
             for char in str_to_append:
-                memory.append(char)
+                memory.append(ord(char))
         elif 'buf ' in value:
             size = int(value.split("buf")[1])
             for i in range(size):

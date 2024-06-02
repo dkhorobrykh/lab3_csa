@@ -6,8 +6,11 @@ from typing import List
 
 class Opcode(str, Enum):
     MOV = "mov"
+    MVA = "mva"
     ST = "st"
+    STA = "sta"
     LD = "ld"
+    LDA = "lda"
 
     ADD = "add"
     SUB = "sub"

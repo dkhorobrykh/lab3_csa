@@ -2,7 +2,7 @@ import logging
 import traceback
 import sys
 from dataclasses import dataclass
-from enum import Enum, member
+from enum import Enum
 from typing import List, Callable, Dict
 
 from src.isa import Command, Opcode, read_code
@@ -51,6 +51,7 @@ class Sel:
         IMMEDIATE = "sel_reg_immediate"
 
     class LeftAlu(str, Enum):
+        DATA_REGISTER = "sel_left_alu_dr"
         REGISTER = "sel_left_alu_reg"
         CONTROL_UNIT = "sel_left_alu_cu"
 
@@ -85,6 +86,7 @@ class ALU:
         NEG = "neg"
         CMP = "cmp"
         TEST = "test"
+        LEFT = "left"
 
     result = None
     left_term = None
@@ -114,6 +116,8 @@ class ALU:
             self.left_term = self.data_path.registers[Register.LEFT_REGISTER_TERM]
         elif sel == Sel.LeftAlu.CONTROL_UNIT:
             self.left_term = self.data_path.control_unit.program.terms[0] if str(self.data_path.control_unit.program.terms[0]).upper() not in Register.__members__ else int(self.data_path.control_unit.program.terms[1])
+        elif sel == Sel.LeftAlu.DATA_REGISTER:
+            self.left_term = self.data_path.data_register
 
     def signal_latch_right_alu(self, sel):
         assert isinstance(sel, Sel.RightAlu), "sel_right_alu is undefined"
@@ -149,6 +153,8 @@ class ALU:
                 self.result = self.left_term - self.right_term
             case ALU.ALUOperations.TEST:
                 self.result = self.left_term & self.right_term
+            case ALU.ALUOperations.LEFT:
+                self.result = self.left_term
 
         self.set_flags()
 
@@ -293,10 +299,10 @@ class DataPath:
 
 class ControlUnit:
     program_counter: int = None
-    program = None
+    program: Command = None
     mpc: int = None
     mpc_of_opcode: Callable[[Opcode], int] = None
-    mprogram: List[str] = None
+    mprogram: List = None
     data_path: DataPath = None
     model_tick: int = None
     signals: Dict[Signal, Callable] = None
@@ -330,35 +336,49 @@ class ControlUnit:
 
         self.mpc_of_opcode = lambda opcode: {
             Opcode.MOV.value: 1,
-            Opcode.ST.value: 2,
-            Opcode.LD.value: 5,
-            Opcode.ADD.value: 8,
-            Opcode.SUB.value: 9,
-            Opcode.MUL.value: 10,
-            Opcode.DIV.value: 11,
-            Opcode.INC.value: 12,
-            Opcode.DEC.value: 13,
-            Opcode.MOD.value: 14,
-            Opcode.NEG.value: 15,
-            Opcode.CMP.value: 16,
-            Opcode.TEST.value: 17,
-            Opcode.JMP.value: 18,
-            Opcode.JZ.value: 19,
-            Opcode.JNZ.value: 20,
-            Opcode.JGE.value: 21,
-            Opcode.HLT.value: 22
+            Opcode.MVA.value: 2,
+            Opcode.ST.value: 3,
+            Opcode.STA.value: 6,
+            Opcode.LD.value: 9,
+            Opcode.LDA.value: 12,
+            Opcode.ADD.value: 15,
+            Opcode.SUB.value: 16,
+            Opcode.MUL.value: 17,
+            Opcode.DIV.value: 18,
+            Opcode.INC.value: 19,
+            Opcode.DEC.value: 20,
+            Opcode.MOD.value: 21,
+            Opcode.NEG.value: 22,
+            Opcode.CMP.value: 23,
+            Opcode.TEST.value: 24,
+            Opcode.JMP.value: 25,
+            Opcode.JZ.value: 26,
+            Opcode.JNZ.value: 27,
+            Opcode.JGE.value: 28,
+            Opcode.HLT.value: 29
         }[opcode]
 
         self.mprogram = [
+            # Instruction Fetch
             [(Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.PROGRAM_COUNTER), (Signal.SIGNAL_READ,), (Signal.LATCH_PROGRAM,), (Signal.LATCH_MPC, Sel.MPC.MPC_ADDRESS)],
             # MOV
             [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            # MVA
+            [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # ST
             [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [(Signal.SIGNAL_WRITE,), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            # STA
+            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
             [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
             [(Signal.SIGNAL_WRITE,), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # LD
             [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [(Signal.SIGNAL_READ,), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [(Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            # LDA
+            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
             [(Signal.SIGNAL_READ,), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
             [(Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # ADD
@@ -394,7 +414,6 @@ class ControlUnit:
         ]
 
         self.data_path.control_unit = self
-
 
     def tick(self):
         self.model_tick += 1
@@ -443,8 +462,16 @@ class ControlUnit:
         second_term = terms[1]
         first_used = False
 
-        if self.program is not None and self.program.opcode in {Opcode.ST, Opcode.MOV}:
+        if self.program is not None and self.program.opcode in {Opcode.ST, Opcode.MOV, Opcode.LDA}:
             first_term, second_term = second_term, first_term
+
+        if self.program is not None and self.program.opcode == Opcode.LDA and self.mprogram[self.mpc][0][0] == Signal.LATCH_REGISTER:
+            first_term, second_term = second_term, first_term
+
+        if self.program is not None and self.program.opcode == Opcode.STA and self.mpc == self.mpc_of_opcode(self.program.opcode) + 1:
+            first_term, second_term = second_term, first_term
+
+        # print(self.program.opcode, first_term, second_term) if self.program is not None else ...
 
         for signal in self.mprogram[self.mpc]:
             if None in signal:
@@ -457,6 +484,7 @@ class ControlUnit:
                 signal = (signal[0], signal[1], reg_name) if len(signal) == 3 else (signal[0], reg_name)
             if len(signal) == 3 and isinstance(signal[-1], Signal):
                 signal = (signal[0], signal[1], self.signals[signal[2]]())
+            # print(signal)
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
@@ -501,7 +529,7 @@ def simulate(code, input_tokens, memory_size, limit, log_limit):
             control_unit.decode_and_execute_micro_instruction()
             control_unit.tick()
     except Exception as e:
-        # print(traceback.format_exc())
+        print(traceback.format_exc())
         return "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]), control_unit.program_counter, control_unit.model_tick
 
 
@@ -513,7 +541,7 @@ def main(code_file, input_file):
         for char in input_text:
             input_token.append(char)
 
-    output, program_counter, ticks = simulate(memory, input_token, 100000, 100, 100000)
+    output, program_counter, ticks = simulate(memory, input_token, 100000, 10000, 100000)
     print()
     print("PROGRAM IS ENDING!")
     print(f"output: {output}")
