@@ -275,7 +275,7 @@ class DataPath:
 
         if self.address_register == self.input_address:
             if len(self.input_buffer) == 0:
-                raise EOFError("input buffer is empty")
+                raise EOFError
             symbol = self.input_buffer.pop(0)
             logging.info(f"input: {self.input_buffer} >> {symbol}")
             symbol_code = ord(symbol)
@@ -621,8 +621,7 @@ class ControlUnit:
             return [None, None]
         elif len(self.program.terms) == 1:
             return [self.program.terms[0], self.program.terms[0]]
-        else:
-            return self.program.terms
+        return self.program.terms
 
     def swap_terms_based_on_opcode(self, terms):
         first_term, second_term = terms
