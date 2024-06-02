@@ -1,5 +1,4 @@
 import logging
-import traceback
 import sys
 from dataclasses import dataclass
 from enum import Enum
@@ -94,10 +93,7 @@ class ALU:
 
     data_path = None
 
-    flags = {
-        "Z": False,
-        "N": False
-    }
+    flags = {"Z": False, "N": False}
 
     def __init__(self):
         self.result = 0
@@ -115,7 +111,11 @@ class ALU:
         if sel == Sel.LeftAlu.REGISTER:
             self.left_term = self.data_path.registers[Register.LEFT_REGISTER_TERM]
         elif sel == Sel.LeftAlu.CONTROL_UNIT:
-            self.left_term = self.data_path.control_unit.program.terms[0] if str(self.data_path.control_unit.program.terms[0]).upper() not in Register.__members__ else int(self.data_path.control_unit.program.terms[1])
+            self.left_term = (
+                self.data_path.control_unit.program.terms[0]
+                if str(self.data_path.control_unit.program.terms[0]).upper() not in Register.__members__
+                else int(self.data_path.control_unit.program.terms[1])
+            )
         elif sel == Sel.LeftAlu.DATA_REGISTER:
             self.left_term = self.data_path.data_register
 
@@ -176,7 +176,7 @@ class DataPath:
         Register.R3: 0,
         Register.R4: 0,
         Register.LEFT_REGISTER_TERM: 0,
-        Register.RIGHT_REGISTER_TERM: 0
+        Register.RIGHT_REGISTER_TERM: 0,
     }
 
     input_buffer = None
@@ -262,7 +262,9 @@ class DataPath:
 
         if self.address_register == self.output_address:
             self.output_buffer.append(self.data_register)
-            logging.info(f"output: {[chr(i) if i < 128 else str(i) for i in self.output_buffer]} << {chr(self.data_register) if self.data_register < 128 else str(self.data_register)}")
+            logging.info(
+                f"output: {[chr(i) if i < 128 else str(i) for i in self.output_buffer]} << {chr(self.data_register) if self.data_register < 128 else str(self.data_register)}"
+            )
         else:
             self.memory[self.address_register] = self.data_register
 
@@ -331,7 +333,7 @@ class ControlUnit:
             Signal.CHECK_SIGN_FLAG: self.data_path.check_sign_flag,
             Signal.CHECK_NOT_SIGN_FLAG: self.data_path.check_not_sign_flag,
             Signal.LATCH_PROGRAM_COUNTER: self.signal_latch_pc,
-            Signal.HALT: self.halt
+            Signal.HALT: self.halt,
         }
 
         self.mpc_of_opcode = lambda opcode: {
@@ -355,62 +357,219 @@ class ControlUnit:
             Opcode.JZ.value: 26,
             Opcode.JNZ.value: 27,
             Opcode.JGE.value: 28,
-            Opcode.HLT.value: 29
+            Opcode.HLT.value: 29,
         }[opcode]
 
         self.mprogram = [
             # Instruction Fetch
-            [(Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.PROGRAM_COUNTER), (Signal.SIGNAL_READ,), (Signal.LATCH_PROGRAM,), (Signal.LATCH_MPC, Sel.MPC.MPC_ADDRESS)],
+            [
+                (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.PROGRAM_COUNTER),
+                (Signal.SIGNAL_READ,),
+                (Signal.LATCH_PROGRAM,),
+                (Signal.LATCH_MPC, Sel.MPC.MPC_ADDRESS),
+            ],
             # MOV
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # MVA
-            [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # ST
-            [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT),
+                (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
             [(Signal.SIGNAL_WRITE,), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # STA
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT),
+                (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_DATA_REGISTER, Sel.DataRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
             [(Signal.SIGNAL_WRITE,), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # LD
-            [(Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.CONTROL_UNIT),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
             [(Signal.SIGNAL_READ,), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
-            [(Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # LDA
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT), (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.LEFT),
+                (Signal.LATCH_ADDRESS_REGISTER, Sel.AddressRegister.ALU),
+                (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE),
+            ],
             [(Signal.SIGNAL_READ,), (Signal.LATCH_MPC, Sel.MPC.PLUS_ONE)],
-            [(Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_REGISTER, Sel.Register.DATA_REGISTER, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # ADD
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # SUB
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.SUB), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.SUB),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # MUL
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.MUL), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.MUL),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # DIV
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.DIV), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.DIV),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # INC
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.PLUS_ONE), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.PLUS_ONE),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.ADD),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # DEC
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.PLUS_ONE), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.SUB), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.PLUS_ONE),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.SUB),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # MOD
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.MOD), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.MOD),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # NEG
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.NEG), (Signal.LATCH_REGISTER, Sel.Register.ALU, None), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.ZERO),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.NEG),
+                (Signal.LATCH_REGISTER, Sel.Register.ALU, None),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # CMP
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.CMP), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.CMP),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # TEST
-            [(Signal.LATCH_LEFT_REGISTER_TERM, None), (Signal.LATCH_RIGHT_REGISTER_TERM, None), (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER), (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER), (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.TEST), (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_LEFT_REGISTER_TERM, None),
+                (Signal.LATCH_RIGHT_REGISTER_TERM, None),
+                (Signal.LATCH_LEFT_ALU, Sel.LeftAlu.REGISTER),
+                (Signal.LATCH_RIGHT_ALU, Sel.RightAlu.REGISTER),
+                (Signal.EXECUTE_ALU_OPERATION, ALU.ALUOperations.TEST),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PLUS_ONE),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # JMP
             [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JZ
             [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JNZ
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_ZERO_FLAG),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # JGE
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_SIGN_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_SIGN_FLAG),
+                (Signal.LATCH_MPC, Sel.MPC.ZERO),
+            ],
             # HLT
-            [(Signal.HALT,)]
+            [(Signal.HALT,)],
         ]
 
         self.data_path.control_unit = self
@@ -465,10 +624,18 @@ class ControlUnit:
         if self.program is not None and self.program.opcode in {Opcode.ST, Opcode.MOV, Opcode.LDA}:
             first_term, second_term = second_term, first_term
 
-        if self.program is not None and self.program.opcode == Opcode.LDA and self.mprogram[self.mpc][0][0] == Signal.LATCH_REGISTER:
+        if (
+            self.program is not None
+            and self.program.opcode == Opcode.LDA
+            and self.mprogram[self.mpc][0][0] == Signal.LATCH_REGISTER
+        ):
             first_term, second_term = second_term, first_term
 
-        if self.program is not None and self.program.opcode == Opcode.STA and self.mpc == self.mpc_of_opcode(self.program.opcode) + 1:
+        if (
+            self.program is not None
+            and self.program.opcode == Opcode.STA
+            and self.mpc == self.mpc_of_opcode(self.program.opcode) + 1
+        ):
             first_term, second_term = second_term, first_term
 
         # print(self.program.opcode, first_term, second_term) if self.program is not None else ...
@@ -488,32 +655,36 @@ class ControlUnit:
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
-        return (f"TICK: {self.model_tick}\t"
-                f"PC: {self.program_counter}\t"
-                f"AR: {self.data_path.address_register}\t"
-                f"DR: {self.data_path.data_register}\t"
-                f"R0: {self.data_path.registers[Register.R0]}\t"
-                f"R1: {self.data_path.registers[Register.R1]}\t"
-                f"R2: {self.data_path.registers[Register.R2]}\t"
-                f"R3: {self.data_path.registers[Register.R3]}\t"
-                f"R4: {self.data_path.registers[Register.R4]}")
+        return (
+            f"TICK: {self.model_tick}\t"
+            f"PC: {self.program_counter}\t"
+            f"AR: {self.data_path.address_register}\t"
+            f"DR: {self.data_path.data_register}\t"
+            f"R0: {self.data_path.registers[Register.R0]}\t"
+            f"R1: {self.data_path.registers[Register.R1]}\t"
+            f"R2: {self.data_path.registers[Register.R2]}\t"
+            f"R3: {self.data_path.registers[Register.R3]}\t"
+            f"R4: {self.data_path.registers[Register.R4]}"
+        )
 
     def show_control_unit_microdebug(self):
-        return (f"TICK: {self.model_tick}\t"
-                f"PC: {self.program_counter}\t"
-                f"AR: {self.data_path.address_register}\t"
-                f"DR: {self.data_path.data_register}\t"
-                f"R0: {self.data_path.registers[Register.R0]}\t"
-                f"R1: {self.data_path.registers[Register.R1]}\t"
-                f"R2: {self.data_path.registers[Register.R2]}\t"
-                f"R3: {self.data_path.registers[Register.R3]}\t"
-                f"R4: {self.data_path.registers[Register.R4]}\t"
-                f"LEFT_REG: {self.data_path.registers[Register.LEFT_REGISTER_TERM]}\t"
-                f"RIGHT_REG: {self.data_path.registers[Register.RIGHT_REGISTER_TERM]}\t"
-                f"ALU: {self.data_path.alu.result}\t"
-                f"MPC: {self.mpc}\t"
-                f"PROGRAM: {self.program}\t"
-                f"SIGNALS: {' | '.join([', '.join(str(i) if i is not None else '' for i in signal) for signal in self.mprogram[self.mpc]])}")
+        return (
+            f"TICK: {self.model_tick}\t"
+            f"PC: {self.program_counter}\t"
+            f"AR: {self.data_path.address_register}\t"
+            f"DR: {self.data_path.data_register}\t"
+            f"R0: {self.data_path.registers[Register.R0]}\t"
+            f"R1: {self.data_path.registers[Register.R1]}\t"
+            f"R2: {self.data_path.registers[Register.R2]}\t"
+            f"R3: {self.data_path.registers[Register.R3]}\t"
+            f"R4: {self.data_path.registers[Register.R4]}\t"
+            f"LEFT_REG: {self.data_path.registers[Register.LEFT_REGISTER_TERM]}\t"
+            f"RIGHT_REG: {self.data_path.registers[Register.RIGHT_REGISTER_TERM]}\t"
+            f"ALU: {self.data_path.alu.result}\t"
+            f"MPC: {self.mpc}\t"
+            f"PROGRAM: {self.program}\t"
+            f"SIGNALS: {' | '.join([', '.join(str(i) if i is not None else '' for i in signal) for signal in self.mprogram[self.mpc]])}"
+        )
 
 
 def simulate(code, input_tokens, memory_size, limit, log_limit):
@@ -527,7 +698,11 @@ def simulate(code, input_tokens, memory_size, limit, log_limit):
             control_unit.tick()
     except Exception as e:
         logging.warning(e) if str(e) != "halt" else ...
-        return "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]), control_unit.program_counter, control_unit.model_tick
+        return (
+            "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]),
+            control_unit.program_counter,
+            control_unit.model_tick,
+        )
 
 
 def main(code_file, input_file):
@@ -544,7 +719,7 @@ def main(code_file, input_file):
     print(f"ticks: {ticks}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     assert len(sys.argv) == 3, "Wrong arguments: machine.py <code_file> <input_file>"
     _, code_file, input_file = sys.argv

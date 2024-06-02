@@ -20,9 +20,9 @@ def test_translator_asm_and_machine(golden, caplog):
         target = os.path.join(tmpdirname, "target.o")
 
         with open(source, "w", encoding="utf8") as file:
-            file.write(golden['in_source'])
+            file.write(golden["in_source"])
         with open(input_stream, "w", encoding="utf8") as file:
-            file.write(golden['in_stdin'])
+            file.write(golden["in_stdin"])
 
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             translator.main(source, target)

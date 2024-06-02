@@ -41,11 +41,7 @@ class Command:
     terms: List
 
     def toDict(self):
-        return {
-            "index": self.index,
-            "opcode": str(self.opcode),
-            "terms": self.terms
-        }
+        return {"index": self.index, "opcode": str(self.opcode), "terms": self.terms}
 
     def __str__(self):
         return f"{self.opcode.value}({' '.join([str(i) for i in self.terms])})"
@@ -65,7 +61,7 @@ def read_code(filename: str) -> List[Command]:
         result = list()
         for command in in_json:
             if isinstance(command, dict):
-                result.append(Command(command['index'], Opcode(command['opcode']), command['terms']))
+                result.append(Command(command["index"], Opcode(command["opcode"]), command["terms"]))
             else:
                 result.append(command)
         return result

@@ -15,7 +15,7 @@ def process_data_section(program: str):
     labels = dict()
 
     for line in needed_part.splitlines():
-        if line == '':
+        if line == "":
             continue
 
         token = get_meaningful_token(line)
@@ -27,7 +27,7 @@ def process_data_section(program: str):
 
             for char in str_to_append:
                 memory.append(ord(char))
-        elif 'buf ' in value:
+        elif "buf " in value:
             size = int(value.split("buf")[1])
             for i in range(size):
                 memory.append(0)
@@ -44,7 +44,7 @@ def first_stage(program: str):
 
     for line in needed_part.splitlines():
         token = get_meaningful_token(line)
-        if token == '':
+        if token == "":
             continue
 
         args = token.split(" ", 1)
@@ -111,7 +111,7 @@ def translate(program: str) -> List[Command]:
 
 
 def main(source_filename: str, target_filename: str) -> None:
-    with open(source_filename, 'r', encoding="utf8") as in_file:
+    with open(source_filename, "r", encoding="utf8") as in_file:
         source = in_file.read()
 
     memory = translate(source)
@@ -119,7 +119,7 @@ def main(source_filename: str, target_filename: str) -> None:
     write_code(target_filename, memory)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     assert len(sys.argv) == 3, "usage translator.py <input_filename> <output_filename>"
     _, input_file, output_filename = sys.argv
     main(input_file, output_filename)
