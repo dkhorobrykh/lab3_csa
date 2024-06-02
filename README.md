@@ -136,6 +136,7 @@ ___
 
 #### Регистры
 ![RegFile Scheme](images/reg_file.png "Register file scheme")
+
 Реализация приведена в [RegFile](reg_file.py)
 - В процессоре присутствуют 8 регистров общего назначения, пронумерованные от r0 до r7.
 - `latch_reg` - У каждого из регистров есть два входа - данные и сигнал `sel`. При вызове на DataPath сигнала 
@@ -314,10 +315,10 @@ ___
 Тестирование выполняется при помощи golden тестов.
 
 Тесты реализованы в golden_test.py. Конфигурации:
-- [cat.yml](golden/cat.yml)
+- [cat](golden/cat.yml)
 - [hello_world](golden/hello_world.yml)
 - [hello_user](golden/hello_user.yml)
-- [prob2.yml](golden/prob2.yml)
+- [prob2](golden/prob2.yml)
 
 Запустить тесты: `poetry run pytest . -v`
 
@@ -928,6 +929,9 @@ golden_test.py::test_translator_asm_and_machine[golden/prob2.yml] PASSED        
 ```
 
 | Хоробрых Даниил Евгеньевич | cat | 7 | - | 8 | - | 231 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+
 | Хоробрых Даниил Евгеньевич | hello | 11 | - | 12 | - | 293 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+
 | Хоробрых Даниил Евгеньевич | hello_username | 50 | - | 51 | - | 1533 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
+
 | Хоробрых Даниил Евгеньевич | prob2 | 20 | - | 21 | - | 1091 | asm | risc | neum | mc -> hw | instr | struct | stream | mem | pstr | prob2 | cache |
