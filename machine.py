@@ -171,7 +171,7 @@ class DataPath:
 
     alu: ClassVar[ALU] = None
 
-    registers: ClassVar[dict[Register, object]]= {
+    registers: ClassVar[dict[Register, object]] = {
         Register.R0: 0,
         Register.R1: 0,
         Register.R2: 0,
@@ -668,7 +668,9 @@ class ControlUnit:
         first_used = False
 
         for signal in self.mprogram[self.mpc]:
-            signal, first_term, second_term, first_used = self.process_signal(signal, first_term, second_term, first_used, self.signals)
+            signal, first_term, second_term, first_used = self.process_signal(
+                signal, first_term, second_term, first_used, self.signals
+            )
             self.signal_dispatch_data_path(*signal)
 
     def show_control_unit_debug(self):
