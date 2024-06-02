@@ -7,6 +7,9 @@ class Register(str, Enum):
     R2 = "r2"
     R3 = "r3"
     R4 = "r4"
+    R5 = "r5"
+    R6 = "r6"
+    R7 = "r7"
 
     LEFT_REGISTER_TERM = "left register term"
     RIGHT_REGISTER_TERM = "right register term"

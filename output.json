@@ -3,109 +3,31 @@
         "index": 0,
         "opcode": "jmp",
         "terms": [
-            101
+            23
         ]
     },
     null,
     null,
-    39,
-    87,
+    13,
     104,
-    97,
-    116,
-    32,
-    105,
-    115,
-    32,
-    121,
-    111,
-    117,
-    114,
-    32,
-    110,
-    97,
-    109,
-    101,
-    63,
-    32,
-    40,
-    97,
-    116,
-    32,
-    116,
-    104,
-    101,
-    32,
-    101,
-    110,
-    100,
-    32,
-    101,
-    110,
-    116,
-    101,
-    114,
-    32,
-    48,
-    41,
-    39,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    8,
-    32,
-    72,
     101,
     108,
     108,
     111,
     44,
     32,
-    8,
-    1,
+    119,
+    111,
+    114,
+    108,
+    100,
     33,
-    1,
-    48,
+    13,
     1,
     2,
     0,
-    103,
-    111,
-    113,
-    121,
-    123,
-    131,
-    133,
-    140,
-    142,
-    150,
+    25,
+    33,
     {
         "index": 1,
         "opcode": "mva",
@@ -119,7 +41,7 @@
         "opcode": "ld",
         "terms": [
             "r1",
-            90
+            20
         ]
     },
     {
@@ -157,7 +79,7 @@
         "opcode": "ld",
         "terms": [
             "r2",
-            43
+            17
         ]
     },
     {
@@ -172,314 +94,18 @@
         "index": 9,
         "opcode": "jz",
         "terms": [
-            111
+            33
         ]
     },
     {
         "index": 10,
         "opcode": "jmp",
         "terms": [
-            103
+            25
         ]
     },
     {
         "index": 11,
-        "opcode": "mva",
-        "terms": [
-            "r0",
-            44
-        ]
-    },
-    {
-        "index": 12,
-        "opcode": "ld",
-        "terms": [
-            "r4",
-            90
-        ]
-    },
-    {
-        "index": 13,
-        "opcode": "ld",
-        "terms": [
-            "r2",
-            1
-        ]
-    },
-    {
-        "index": 14,
-        "opcode": "ld",
-        "terms": [
-            "r3",
-            87
-        ]
-    },
-    {
-        "index": 15,
-        "opcode": "cmp",
-        "terms": [
-            "r2",
-            "r3"
-        ]
-    },
-    {
-        "index": 16,
-        "opcode": "jz",
-        "terms": [
-            121
-        ]
-    },
-    {
-        "index": 17,
-        "opcode": "inc",
-        "terms": [
-            "r4"
-        ]
-    },
-    {
-        "index": 18,
-        "opcode": "sta",
-        "terms": [
-            "r0",
-            "r2"
-        ]
-    },
-    {
-        "index": 19,
-        "opcode": "inc",
-        "terms": [
-            "r0"
-        ]
-    },
-    {
-        "index": 20,
-        "opcode": "jmp",
-        "terms": [
-            113
-        ]
-    },
-    {
-        "index": 21,
-        "opcode": "mva",
-        "terms": [
-            "r0",
-            74
-        ]
-    },
-    {
-        "index": 22,
-        "opcode": "ld",
-        "terms": [
-            "r1",
-            90
-        ]
-    },
-    {
-        "index": 23,
-        "opcode": "inc",
-        "terms": [
-            "r0"
-        ]
-    },
-    {
-        "index": 24,
-        "opcode": "inc",
-        "terms": [
-            "r1"
-        ]
-    },
-    {
-        "index": 25,
-        "opcode": "lda",
-        "terms": [
-            "r2",
-            "r0"
-        ]
-    },
-    {
-        "index": 26,
-        "opcode": "st",
-        "terms": [
-            2,
-            "r2"
-        ]
-    },
-    {
-        "index": 27,
-        "opcode": "ld",
-        "terms": [
-            "r2",
-            83
-        ]
-    },
-    {
-        "index": 28,
-        "opcode": "cmp",
-        "terms": [
-            "r1",
-            "r2"
-        ]
-    },
-    {
-        "index": 29,
-        "opcode": "jz",
-        "terms": [
-            131
-        ]
-    },
-    {
-        "index": 30,
-        "opcode": "jmp",
-        "terms": [
-            123
-        ]
-    },
-    {
-        "index": 31,
-        "opcode": "mva",
-        "terms": [
-            "r0",
-            44
-        ]
-    },
-    {
-        "index": 32,
-        "opcode": "ld",
-        "terms": [
-            "r1",
-            90
-        ]
-    },
-    {
-        "index": 33,
-        "opcode": "lda",
-        "terms": [
-            "r2",
-            "r0"
-        ]
-    },
-    {
-        "index": 34,
-        "opcode": "st",
-        "terms": [
-            2,
-            "r2"
-        ]
-    },
-    {
-        "index": 35,
-        "opcode": "inc",
-        "terms": [
-            "r0"
-        ]
-    },
-    {
-        "index": 36,
-        "opcode": "inc",
-        "terms": [
-            "r1"
-        ]
-    },
-    {
-        "index": 37,
-        "opcode": "cmp",
-        "terms": [
-            "r1",
-            "r4"
-        ]
-    },
-    {
-        "index": 38,
-        "opcode": "jz",
-        "terms": [
-            140
-        ]
-    },
-    {
-        "index": 39,
-        "opcode": "jmp",
-        "terms": [
-            133
-        ]
-    },
-    {
-        "index": 40,
-        "opcode": "mva",
-        "terms": [
-            "r0",
-            84
-        ]
-    },
-    {
-        "index": 41,
-        "opcode": "ld",
-        "terms": [
-            "r1",
-            90
-        ]
-    },
-    {
-        "index": 42,
-        "opcode": "inc",
-        "terms": [
-            "r0"
-        ]
-    },
-    {
-        "index": 43,
-        "opcode": "inc",
-        "terms": [
-            "r1"
-        ]
-    },
-    {
-        "index": 44,
-        "opcode": "lda",
-        "terms": [
-            "r2",
-            "r0"
-        ]
-    },
-    {
-        "index": 45,
-        "opcode": "st",
-        "terms": [
-            2,
-            "r2"
-        ]
-    },
-    {
-        "index": 46,
-        "opcode": "ld",
-        "terms": [
-            "r2",
-            86
-        ]
-    },
-    {
-        "index": 47,
-        "opcode": "cmp",
-        "terms": [
-            "r1",
-            "r2"
-        ]
-    },
-    {
-        "index": 48,
-        "opcode": "jz",
-        "terms": [
-            150
-        ]
-    },
-    {
-        "index": 49,
-        "opcode": "jmp",
-        "terms": [
-            142
-        ]
-    },
-    {
-        "index": 50,
         "opcode": "hlt",
         "terms": []
     }

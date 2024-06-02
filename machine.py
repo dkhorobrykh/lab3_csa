@@ -42,31 +42,23 @@ class Sel:
 
     class DataRegister(str, Enum):
         ALU = "sel_dr_alu"
-        MEMORY = "sel_dr_memory"
 
     class Register(str, Enum):
-        CONTROL_UNIT = "sel_reg_cu"
         DATA_REGISTER = "sel_reg_dr"
         ALU = "sel_reg_alu"
-        INPUT = "sel_reg_input"
-        IMMEDIATE = "sel_reg_immediate"
 
     class LeftAlu(str, Enum):
-        DATA_REGISTER = "sel_left_alu_dr"
         REGISTER = "sel_left_alu_reg"
         CONTROL_UNIT = "sel_left_alu_cu"
 
     class RightAlu(str, Enum):
-        DATA_REGISTER = "sel_right_alu_dr"
         REGISTER = "sel_right_alu_reg"
         ZERO = "sel_right_alu_zero"
         PLUS_ONE = "sel_right_alu_plus_one"
 
     class PC(str, Enum):
-        ZERO = "zero"
-        MPROGRAM = "mprogram"
+        PROGRAM = "program"
         PLUS_ONE = "plus_one"
-        ADDRESS_REGISTER = "address_register"
 
     class MPC(str, Enum):
         ZERO = "zero"
@@ -118,8 +110,6 @@ class ALU:
                 if str(self.data_path.control_unit.program.terms[0]).upper() not in Register.__members__
                 else int(self.data_path.control_unit.program.terms[1])
             )
-        elif sel == Sel.LeftAlu.DATA_REGISTER:
-            self.left_term = self.data_path.data_register
 
     def signal_latch_right_alu(self, sel):
         assert isinstance(sel, Sel.RightAlu), "sel_right_alu is undefined"
@@ -130,8 +120,6 @@ class ALU:
             self.right_term = 0
         elif sel == Sel.RightAlu.PLUS_ONE:
             self.right_term = 1
-        elif sel == Sel.RightAlu.DATA_REGISTER:
-            self.right_term = self.data_path.data_register
 
     def compute(self, operation: ALUOperations):
         match operation:
@@ -177,6 +165,9 @@ class DataPath:
         Register.R2: 0,
         Register.R3: 0,
         Register.R4: 0,
+        Register.R5: 0,
+        Register.R6: 0,
+        Register.R7: 0,
         Register.LEFT_REGISTER_TERM: 0,
         Register.RIGHT_REGISTER_TERM: 0,
     }
@@ -206,6 +197,9 @@ class DataPath:
         self.registers[Register.R2] = 0
         self.registers[Register.R3] = 0
         self.registers[Register.R4] = 0
+        self.registers[Register.R5] = 0
+        self.registers[Register.R6] = 0
+        self.registers[Register.R7] = 0
         self.registers[Register.LEFT_REGISTER_TERM] = 0
         self.registers[Register.RIGHT_REGISTER_TERM] = 0
 
@@ -222,9 +216,7 @@ class DataPath:
 
     def signal_latch_data_register(self, sel):
         assert isinstance(sel, Sel.DataRegister), "sel_dr is undefined"
-        if sel == Sel.DataRegister.MEMORY:
-            self.data_register = self.memory[self.address_register]
-        elif sel == Sel.DataRegister.ALU:
+        if sel == Sel.DataRegister.ALU:
             self.data_register = self.alu.result
 
     def signal_latch_address_register(self, sel):
@@ -561,17 +553,17 @@ class ControlUnit:
                 (Signal.LATCH_MPC, Sel.MPC.ZERO),
             ],
             # JMP
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PROGRAM), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JZ
-            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
+            [(Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PROGRAM, Signal.CHECK_ZERO_FLAG), (Signal.LATCH_MPC, Sel.MPC.ZERO)],
             # JNZ
             [
-                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_ZERO_FLAG),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PROGRAM, Signal.CHECK_NOT_ZERO_FLAG),
                 (Signal.LATCH_MPC, Sel.MPC.ZERO),
             ],
             # JGE
             [
-                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.MPROGRAM, Signal.CHECK_NOT_SIGN_FLAG),
+                (Signal.LATCH_PROGRAM_COUNTER, Sel.PC.PROGRAM, Signal.CHECK_NOT_SIGN_FLAG),
                 (Signal.LATCH_MPC, Sel.MPC.ZERO),
             ],
             # HLT
@@ -586,14 +578,10 @@ class ControlUnit:
     def signal_latch_pc(self, sel, check_signal=True):
         assert isinstance(sel, Sel.PC), "sel_pc is undefined"
 
-        if sel == Sel.PC.ZERO:
-            self.program_counter = 0
-        elif sel == Sel.PC.MPROGRAM:
+        if sel == Sel.PC.PROGRAM:
             self.program_counter = self.program.terms[0] if check_signal else self.program_counter + 1
         elif sel == Sel.PC.PLUS_ONE:
             self.program_counter += 1
-        elif sel == Sel.PC.ADDRESS_REGISTER:
-            self.program_counter = self.data_path.address_register
 
     def halt(self):
         raise HltError
@@ -685,7 +673,10 @@ class ControlUnit:
             f"R1: {self.data_path.registers[Register.R1]}\t"
             f"R2: {self.data_path.registers[Register.R2]}\t"
             f"R3: {self.data_path.registers[Register.R3]}\t"
-            f"R4: {self.data_path.registers[Register.R4]}"
+            f"R4: {self.data_path.registers[Register.R4]}\t"
+            f"R5: {self.data_path.registers[Register.R5]}\t"
+            f"R6: {self.data_path.registers[Register.R6]}\t"
+            f"R7: {self.data_path.registers[Register.R7]}\t"
         )
 
     def show_control_unit_microdebug(self):
@@ -699,6 +690,9 @@ class ControlUnit:
             f"R2: {self.data_path.registers[Register.R2]}\t"
             f"R3: {self.data_path.registers[Register.R3]}\t"
             f"R4: {self.data_path.registers[Register.R4]}\t"
+            f"R5: {self.data_path.registers[Register.R5]}\t"
+            f"R6: {self.data_path.registers[Register.R6]}\t"
+            f"R7: {self.data_path.registers[Register.R7]}\t"
             f"LEFT_REG: {self.data_path.registers[Register.LEFT_REGISTER_TERM]}\t"
             f"RIGHT_REG: {self.data_path.registers[Register.RIGHT_REGISTER_TERM]}\t"
             f"ALU: {self.data_path.alu.result}\t"
