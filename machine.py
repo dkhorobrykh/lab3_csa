@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Callable, Dict
 
-from src.isa import Command, Opcode, read_code
-from src.reg_file import Register
+from isa import Command, Opcode, read_code
+from reg_file import Register
 
 
 class Signal(str, Enum):
@@ -522,14 +522,11 @@ def simulate(code, input_tokens, memory_size, limit, log_limit):
     try:
         while control_unit.model_tick < limit:
             if control_unit.model_tick < log_limit:
-                logging.info(control_unit.show_control_unit_microdebug())
-                if control_unit.mpc == 0:
-                    logging.info("")
-                    # logging.info(control_unit.show_control_unit_debug())
+                logging.debug(control_unit.show_control_unit_microdebug())
             control_unit.decode_and_execute_micro_instruction()
             control_unit.tick()
     except Exception as e:
-        print(traceback.format_exc())
+        logging.warning(e) if str(e) != "halt" else ...
         return "".join([chr(i) if i < 128 else str(i) for i in data_path.output_buffer]), control_unit.program_counter, control_unit.model_tick
 
 
@@ -542,8 +539,6 @@ def main(code_file, input_file):
             input_token.append(char)
 
     output, program_counter, ticks = simulate(memory, input_token, 100000, 10000, 100000)
-    print()
-    print("PROGRAM IS ENDING!")
     print(f"output: {output}")
     print(f"program_counter: {program_counter}")
     print(f"ticks: {ticks}")

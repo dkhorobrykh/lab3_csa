@@ -6,9 +6,11 @@
 .code:
     loop:
         ld r0 input
-        st output r0
         mov r1 stop_char
         cmp r0 r1
+        jz end
+        st output r0
         jnz loop
 
-    hlt
+    end:
+        hlt

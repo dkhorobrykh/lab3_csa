@@ -47,6 +47,9 @@ class Command:
             "terms": self.terms
         }
 
+    def __str__(self):
+        return f"{self.opcode.value}({' '.join([str(i) for i in self.terms])})"
+
 
 def write_code(filename: str, code: List[Command]) -> None:
     with open(filename, "w", encoding="utf8") as file:

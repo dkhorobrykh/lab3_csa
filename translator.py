@@ -1,8 +1,8 @@
 import sys
 from typing import List, Dict, Tuple
 
-from src.isa import Command, Opcode, write_code
-from src.reg_file import Register
+from isa import Command, Opcode, write_code
+from reg_file import Register
 
 
 def get_meaningful_token(line: str) -> str:
