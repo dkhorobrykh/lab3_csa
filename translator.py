@@ -111,7 +111,7 @@ def translate(program: str) -> list[Command]:
 
 
 def main(source_filename: str, target_filename: str) -> None:
-    with open(source_filename, "r", encoding="utf8") as in_file:
+    with open(source_filename, encoding="utf8") as in_file:
         source = in_file.read()
 
     memory = translate(source)

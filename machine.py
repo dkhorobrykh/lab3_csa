@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
 import logging
 import sys
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import ClassVar
 
 from isa import Command, Opcode, read_code
 from reg_file import Register
@@ -92,7 +94,7 @@ class ALU:
     left_term = None
     right_term = None
 
-    data_path = None
+    data_path: ClassVar[DataPath] = None
 
     flags = {"Z": False, "N": False}
 
@@ -168,7 +170,7 @@ class DataPath:
     data_register = None
     address_register = None
 
-    alu: ALU = None
+    alu: ClassVar[ALU] = None
 
     registers = {
         Register.R0: 0,
@@ -595,7 +597,7 @@ class ControlUnit:
             self.program_counter = self.data_path.address_register
 
     def halt(self):
-        raise HltErrorException("halt")
+        raise HltErrorException
 
     def signal_latch_mpc(self, sel):
         assert isinstance(sel, Sel.MPC), "sel_mpc is undefined"

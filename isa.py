@@ -57,7 +57,7 @@ def write_code(filename: str, code: list[Command]) -> None:
 
 
 def read_code(filename: str) -> list[Command]:
-    with open(filename, "r", encoding="utf8") as file:
+    with open(filename, encoding="utf8") as file:
         in_json = json.loads(file.read())
         result = list()
         for command in in_json:
